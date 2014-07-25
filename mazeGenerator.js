@@ -20,8 +20,8 @@ Maze.start = function() {
 	Maze.generate();
 	Maze.render();
 	Maze.solve(
-		{ x: 0, y: 0 },
-		{ x: Maze.cols - 1, y: Maze.rows - 1 }
+		{ x: 0, y: 0 }, // start coords
+		{ x: Maze.cols - 1, y: Maze.rows - 1 } // finish coords
 	);
 	Maze.done();
 };
@@ -44,24 +44,25 @@ Maze.init = function() {
 
 Maze.generate = function() {
 	console.time('generate took');
-	
+
 	Maze.mazeList = new indexedArray(Maze.cols, Maze.rows);
 	var frontierCells = new indexedArray(Maze.cols, Maze.rows),
 		cell = Maze.mazeList.generateRandom(), p;
 	
 	Maze.mazeList.add(cell);
-	
+
 	adjacents(cell.x, cell.y, function(x, y) {
 		if (Maze.validCell(x, y)) {
 			frontierCells.add(new Cell(x, y));
 		}
 	});
-	
+
 	do {
 		cell = frontierCells.getRandom();
 		Maze.mazeList.add(cell);
 		frontierCells.remove(cell);
-		
+
+		// pick a random frontier cell (which is already part of the maze)
 		points = [];
 		adjacents(cell.x, cell.y, function(x, y) {
 			if (Maze.validCell(x, y) && !frontierCells.exists(x, y)) {
@@ -70,13 +71,10 @@ Maze.generate = function() {
 		});
 		point = points.getRandom();
 
-		if (point.x == cell.x) {
-			point.y > cell.y ? point.walls[0] = false : cell.walls[0] = false;
-		} else {
-			point.x > cell.x ? point.walls[1] = false : cell.walls[1] = false;
-		}
+		// carve a passage from that frontier cell
+		Maze.walkAble(cell, point, false);
 	} while (frontierCells.hasItems())
-	
+
 	console.timeEnd('generate took');
 };
 
@@ -90,14 +88,19 @@ Maze.render = function() {
 	Maze.ctx.lineWidth = 0.5;
 	Maze.ctx.strokeStyle = '#222222';
 	
+	var xx, yy;
+	
 	Maze.mazeList.loopThrough(function(item) {
+		xx = item.x * Maze.block;
+		yy = item.y * Maze.block;
+		
 		if (item.walls[0] && item.y != 0) {
-			Maze.ctx.moveTo(item.x * Maze.block, item.y * Maze.block);
-			Maze.ctx.lineTo(item.x * Maze.block + Maze.block, item.y * Maze.block);
+			Maze.ctx.moveTo(xx, yy);
+			Maze.ctx.lineTo(xx + Maze.block, yy);
 		}
 		if (item.walls[1] && item.x != 0) {
-			Maze.ctx.moveTo(item.x * Maze.block, item.y * Maze.block);
-			Maze.ctx.lineTo(item.x * Maze.block, item.y * Maze.block + Maze.block);
+			Maze.ctx.moveTo(xx, yy);
+			Maze.ctx.lineTo(xx, yy + Maze.block);
 		}
 	});
 	
@@ -108,25 +111,29 @@ Maze.render = function() {
 };
 
 Maze.solve = function(startCoords, endCoords) {
+	console.time('solve took');
+
 	var startCell = Maze.mazeList.get(endCoords.x, endCoords.y),
 		endCell = Maze.mazeList.get(startCoords.x, startCoords.y),
 		openList = [],
 		impossible = { f: Maze.rows * Maze.cols },
 		from = endCell,
 		lowest, tempPath;
-	
+
 	startCell.scorePath(endCell.x, endCell.y);
 	startCell.pathState = 'open';
 	openList.push(startCell);
 
 	do {
 		lowest = impossible;
-
+		
+		// pick the lowest F cost square on the open list
 		openList.loopThrough(function(item) {
 			if (item.f <= lowest.f) { lowest = item; }
 		});
 
 		adjacents(lowest.x, lowest.y, function(x, y) {
+			// valid, walkable, not checked yet
 			if (Maze.validCell(x, y) && (tempPath = Maze.mazeList.get(x, y)) && Maze.walkAble(lowest, tempPath) && !tempPath.pathState) {
 				tempPath.scorePath(endCell.x, endCell.y);
 				tempPath.parent = lowest;
@@ -136,9 +143,11 @@ Maze.solve = function(startCoords, endCoords) {
 		});
 		
 		lowest.pathState = 'closed';
-		openList.splice(openList.indexOf(lowest), 1);		
+		openList.splice(openList.indexOf(lowest), 1);
 	} while (lowest.h)
-	
+
+	console.timeEnd('solve took');
+
 	Maze.ctx.beginPath();
 	Maze.ctx.lineWidth = Maze.block / 4;
 	Maze.ctx.strokeStyle = '#ff2222';
@@ -147,7 +156,7 @@ Maze.solve = function(startCoords, endCoords) {
 		Maze.ctx.lineTo(from.x * Maze.block + Maze.block / 2, from.y * Maze.block + Maze.block / 2);
 		Maze.ctx.stroke();
 		if (!(from = from.parent)) { clearInterval(solveInterval); }
-	}, 10);
+	}, 30);
 };
 
 Maze.validCell = function(x, y) {
@@ -155,21 +164,23 @@ Maze.validCell = function(x, y) {
 };
 
 Maze.walkAble = function(source, destiny, set) {
-	var wall;
+	var wall,
+		editWall = typeof set != 'undefined';
+		
 	if (source.x == destiny.x) { // vertical
 		if (source.y > destiny.y) {
-			if (set) { source.walls[0] = set; }
+			if (editWall) { source.walls[0] = set; }
 			wall = source.walls[0];
 		} else {
-			if (set) { destiny.walls[0] = set; }
+			if (editWall) { destiny.walls[0] = set; }
 			wall = destiny.walls[0];
 		}
 	} else { // horizontal
 		if (source.x > destiny.x) {
-			if (set) { source.walls[1] = set; }
+			if (editWall) { source.walls[1] = set; }
 			wall = source.walls[1];
 		} else {
-			if (set) { destiny.walls[1] = set; }
+			if (editWall) { destiny.walls[1] = set; }
 			wall = destiny.walls[1];
 		}
 	}
