@@ -9,6 +9,12 @@ Array.prototype.remove = function(item) {
 	}
 };
 
+Array.prototype.loopThrough = function(callback) {
+	for (var i = 0, il = this.length; i < il; i++) {
+		callback(this[i]);
+	}
+};
+
 var toIndex = function(x, y, c) {
 	return y * c + x;
 };
@@ -47,7 +53,7 @@ indexedArray.prototype.get = function(x, y) {
 };
 
 indexedArray.prototype.exists = function(x, y) {
-	return !!this.items[toIndex(x, y, this.c)];
+	return typeof y == 'undefined' ? !!this.items[x] : !!this.items[toIndex(x, y, this.c)];
 };
 
 indexedArray.prototype.hasItems = function() {
@@ -71,5 +77,16 @@ indexedArray.prototype.loopThrough = function(callback) {
 var Cell = function(x, y) {
 	this.x = x;
 	this.y = y;
-	this.walls = [1, 1];
+	this.walls = [true, true];
 };
+
+Cell.prototype.scorePath = function(x, y) {
+	this.g = 0;
+	this.h = Math.abs(this.x - x) + Math.abs(this.y - y);
+};
+
+Object.defineProperty(Cell.prototype, 'f', {
+    get: function f() {
+        return this.g + this.h;
+    }
+});
