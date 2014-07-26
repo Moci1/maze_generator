@@ -105,11 +105,11 @@ Maze.render = function() {
 		xx = item.x * Maze.block;
 		yy = item.y * Maze.block;
 		
-		if (item.walls[0] && item.y != 0) {
+		if (item.walls[0] && item.y != 0) { // top wall
 			Maze.ctx.moveTo(xx, yy);
 			Maze.ctx.lineTo(xx + Maze.block, yy);
 		}
-		if (item.walls[1] && item.x != 0) {
+		if (item.walls[1] && item.x != 0) { // left wall
 			Maze.ctx.moveTo(xx, yy);
 			Maze.ctx.lineTo(xx, yy + Maze.block);
 		}
@@ -131,8 +131,8 @@ Maze.solve = function(startCoords, endCoords) {
 		from = endCell,
 		lowest, tempPath;
 
-	startCell.scorePath(endCell.x, endCell.y);
-	startCell.pathState = 'open';
+	startCell.scorePath(endCell.x, endCell.y); // add g (movement cost) and h (estimated movement cost) values
+	startCell.checked = true;
 	openList.push(startCell);
 
 	do {
@@ -145,17 +145,17 @@ Maze.solve = function(startCoords, endCoords) {
 
 		adjacents(lowest.x, lowest.y, function(x, y) {
 			// valid, walkable, not checked yet
-			if (Maze.validCell(x, y) && (tempPath = Maze.mazeList.get(x, y)) && Maze.walkAble(lowest, tempPath) && !tempPath.pathState) {
-				tempPath.scorePath(endCell.x, endCell.y);
+			if (Maze.validCell(x, y) && (tempPath = Maze.mazeList.get(x, y)) && Maze.walkAble(lowest, tempPath) && !tempPath.checked) {
+				tempPath.scorePath(endCell.x, endCell.y); // add g and h values
 				tempPath.parent = lowest;
 				tempPath.g++;
 				openList.push(tempPath);
 			}
 		});
 		
-		lowest.pathState = 'closed';
-		openList.splice(openList.indexOf(lowest), 1);
-	} while (lowest.h)
+		lowest.checked = true;
+		openList.remove(lowest);
+	} while (lowest.h) // h (estimated movement cost) equals 0 meaning the target
 
 	console.timeEnd('solve took');
 
