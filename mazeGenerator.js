@@ -5,13 +5,25 @@ window.onload = function() {
 		settings = id('settings'),
 		generate = id('generate');
 	
+	Maze.inputs = {
+		row: id('row'),
+		col: id('col'),
+		block: id('block')
+	};
+	
+	Maze.canvas = id('mazeCanvas');
+	Maze.ctx = Maze.canvas.getContext('2d');
+	
 	settings.addEventListener('click', function() {
 		optionsbox.classList.toggle('nullheight');
 	});
 	
 	generate.addEventListener('click', function(e) {
 		e.preventDefault();
-		Maze.start();
+		
+		if (Maze.validateUserDatas()) {
+			Maze.start();
+		}
 	});
 };
 
@@ -26,18 +38,17 @@ Maze.start = function() {
 	Maze.done();
 };
 
-Maze.init = function() {
-	Maze.rows = +id('row').value;
-	Maze.cols = +id('col').value;
-	Maze.block = +id('block').value;
-	Maze.canvas = id('mazeCanvas');
-	Maze.ctx = Maze.canvas.getContext('2d');
+Maze.init = function() {	
+	Maze.rows = +Maze.inputs.row.value;
+	Maze.cols = +Maze.inputs.col.value;
+	Maze.block = +Maze.inputs.block.value;
 	Maze.width = Maze.cols * Maze.block;
 	Maze.height = Maze.rows * Maze.block;
 	
 	console.group('Maze generator by Gábor Bokodi');
 	console.log('Rows: ', Maze.rows);
 	console.log('Columns: ', Maze.cols);
+	console.log('Cells: ', Maze.rows * Maze.cols);
 	console.log('Block: ', Maze.block + 'px');
 	console.log('Size: ', Maze.width + ' x ' + Maze.height);
 };
@@ -47,7 +58,7 @@ Maze.generate = function() {
 
 	Maze.mazeList = new indexedArray(Maze.cols, Maze.rows);
 	var frontierCells = new indexedArray(Maze.cols, Maze.rows),
-		cell = Maze.mazeList.generateRandom(), p;
+		cell = Maze.mazeList.generateRandom(), points, point, p;
 	
 	Maze.mazeList.add(cell);
 
@@ -127,7 +138,7 @@ Maze.solve = function(startCoords, endCoords) {
 	do {
 		lowest = impossible;
 		
-		// pick the lowest F cost square on the open list
+		// pick the lowest F cost cell from the open list
 		openList.loopThrough(function(item) {
 			if (item.f <= lowest.f) { lowest = item; }
 		});
@@ -157,6 +168,27 @@ Maze.solve = function(startCoords, endCoords) {
 		Maze.ctx.stroke();
 		if (!(from = from.parent)) { clearInterval(solveInterval); }
 	}, 30);
+};
+
+Maze.validateUserDatas = function() {
+	var error = false,
+		key,
+		input;
+	
+	for (key in Maze.inputs) {
+		input = Maze.inputs[key];
+		
+		if (!validateNumberTypeInput(input)) { // not valid
+			error = true;
+			if (input && input.style) {
+				input.style.background = 'rgba(255, 0, 0, 0.4)';
+			}
+		} else {
+			input.style.background = '#ffffff';
+		}
+	}
+	
+	return !error;
 };
 
 Maze.validCell = function(x, y) {

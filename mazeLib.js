@@ -23,6 +23,20 @@ var id = function (id) {
 	return document.getElementById(id);
 };
 
+var validateNumberTypeInput = function(input) {
+	if (input && input.nodeType === 1 && input.nodeName === 'INPUT') { // check if html input element
+		if (input.attributes.min && +input.attributes.min.value > input.value) { // check the min value (if defined)
+			return false;
+		} else if (input.attributes.max && +input.attributes.max.value < input.value) { // check the max value (if defined)
+			return false;
+		}
+		
+		return true;
+	} else {
+		return false;
+	}
+};
+
 var adjacents = function(x, y, callback) {
 	for (var d = 0, dirs = [[-1, 0], [0, 1], [1, 0], [0, -1]], len = dirs.length; d < len; d++) {
 		callback(x + dirs[d][1], y + dirs[d][0]);
