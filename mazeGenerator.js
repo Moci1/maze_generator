@@ -148,7 +148,7 @@ Maze.solve = function(startCoords, endCoords) {
 			if (Maze.validCell(x, y) && (tempPath = Maze.mazeList.get(x, y)) && Maze.walkAble(lowest, tempPath) && !tempPath.checked) {
 				tempPath.scorePath(endCell.x, endCell.y); // add g and h values
 				tempPath.parent = lowest;
-				tempPath.g++;
+				tempPath.g = lowest.g + 1;
 				openList.push(tempPath);
 			}
 		});
